@@ -1,0 +1,185 @@
+-- Create database
+CREATE DATABASE IF NOT EXISTS hospital_db;
+USE hospital_db;
+
+-- Drop existing tables
+DROP TABLE IF EXISTS Bills, Appointments, Patients, Doctors, Departments, Medicines;
+
+-- 1. Departments Table
+CREATE TABLE Departments (
+    department_id INT PRIMARY KEY,
+    department_name VARCHAR(100) NOT NULL
+);
+
+-- 2. Doctors Table
+CREATE TABLE Doctors (
+    doctor_id INT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    department_id INT,
+    specialization VARCHAR(100),
+    FOREIGN KEY (department_id) REFERENCES Departments(department_id)
+);
+
+-- 3. Patients Table
+CREATE TABLE Patients (
+    patient_id INT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    age INT CHECK (age > 0),
+    gender VARCHAR(10),
+    phone VARCHAR(15) UNIQUE
+);
+
+-- 4. Appointments Table
+CREATE TABLE Appointments (
+    appointment_id INT PRIMARY KEY,
+    patient_id INT,
+    doctor_id INT,
+    appointment_date DATE,
+    status ENUM('Scheduled', 'Completed', 'Cancelled') DEFAULT 'Scheduled',
+    FOREIGN KEY (patient_id) REFERENCES Patients(patient_id),
+    FOREIGN KEY (doctor_id) REFERENCES Doctors(doctor_id)
+);
+
+-- 5. Medicines Table
+CREATE TABLE Medicines (
+    medicine_id INT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    quantity INT CHECK (quantity >= 0),
+    price DECIMAL(10,2) CHECK (price > 0)
+);
+
+-- 6. Bills Table
+CREATE TABLE Bills (
+    bill_id INT PRIMARY KEY,
+    patient_id INT,
+    amount DECIMAL(10,2) CHECK (amount > 0),
+    bill_date DATE DEFAULT (CURDATE()),
+    FOREIGN KEY (patient_id) REFERENCES Patients(patient_id)
+);
+
+-- 2--------------------------------------------------------------------------------------
+
+-- Insert Departments
+INSERT INTO Departments VALUES 
+(1, 'Ayurveda'),
+(2, 'Cardiology'),
+(3, 'Orthopedics'),
+(4, 'Pediatrics');
+
+-- Insert Doctors
+INSERT INTO Doctors VALUES 
+(101, 'Dr. Chandrasekhar Rao', 1, 'Ayurvedic Therapy'),
+(102, 'Dr. Venkatesh Naidu', 2, 'Heart Specialist'),
+(103, 'Dr. Nagaraju Iyer', 3, 'Bone Specialist'),
+(104, 'Dr. Lakshmi Reddy', 4, 'Child Care');
+
+-- Insert Patients
+INSERT INTO Patients VALUES 
+(201, 'Suresh Kumar', 45, 'Male', '9876543210'),
+(202, 'Padmavathi Reddy', 32, 'Female', '8765432109'),
+(203, 'Rajesh Naidu', 50, 'Male', '7654321098'),
+(204, 'Geetha Srinivas', 28, 'Female', '6543210987');
+
+-- Insert Appointments
+INSERT INTO Appointments VALUES 
+(301, 201, 101, '2025-06-10', 'Completed'),
+(302, 202, 102, '2025-06-12', 'Scheduled'),
+(303, 203, 103, '2025-06-15', 'Cancelled'),
+(304, 204, 104, '2025-06-20', 'Scheduled');
+
+-- Insert Medicines
+INSERT INTO Medicines VALUES 
+(501, 'Dolo 650', 200, 5.50),
+(502, 'Saridon', 150, 8.75),
+(503, 'Liv-52', 120, 9.50);
+
+-- Insert Bills
+INSERT INTO Bills VALUES 
+(401, 201, 1200.00, '2025-06-10'),
+(402, 202, 2500.00, '2025-06-12'),
+(403, 204, 800.00, '2025-06-20');
+
+-- 3----------------------------------------------------------------------------------------
+
+-- 7. Prescriptions Table
+CREATE TABLE Prescriptions (
+    prescription_id INT PRIMARY KEY,
+    appointment_id INT,
+    medicine_id INT,
+    dosage VARCHAR(50),
+    FOREIGN KEY (appointment_id) REFERENCES Appointments(appointment_id),
+    FOREIGN KEY (medicine_id) REFERENCES Medicines(medicine_id)
+);
+
+-- 8. Room Allocations
+CREATE TABLE Room_Allocations (
+    allocation_id INT PRIMARY KEY,
+    patient_id INT,
+    room_number VARCHAR(10),
+    admit_date DATE,
+    discharge_date DATE,
+    FOREIGN KEY (patient_id) REFERENCES Patients(patient_id)
+);
+
+-- Insert sample data
+INSERT INTO Prescriptions VALUES 
+(601, 301, 501, 'Twice daily after meals'),
+(602, 304, 503, 'Once daily before breakfast');
+
+INSERT INTO Room_Allocations VALUES 
+(701, 201, 'ICU-101', '2025-06-09', '2025-06-11'),
+(702, 204, 'WARD-205', '2025-06-19', NULL);
+
+-- 4-------------------------------------------------------------------------------------
+
+-- 1. Active Appointments with Doctor Details
+SELECT 
+    p.name AS patient,
+    d.name AS doctor,
+    a.appointment_date,
+    dept.department_name
+FROM Appointments a
+JOIN Patients p ON a.patient_id = p.patient_id
+JOIN Doctors d ON a.doctor_id = d.doctor_id
+JOIN Departments dept ON d.department_id = dept.department_id
+WHERE a.status = 'Scheduled';
+
+-- 2. Medicine Stock Alert
+SELECT name, quantity 
+FROM Medicines 
+WHERE quantity < 100;
+
+-- 3. Current Hospitalized Patients
+SELECT p.name, r.room_number
+FROM Room_Allocations r
+JOIN Patients p ON r.patient_id = p.patient_id
+WHERE r.discharge_date IS NULL;
+
+
+-- 5------------------------------------------------------------------------------------------------
+
+-- 1. Doctor Schedule View
+CREATE VIEW Doctor_Schedule AS
+SELECT 
+    d.name AS doctor,
+    a.appointment_date,
+    p.name AS patient,
+    a.status
+FROM Appointments a
+JOIN Doctors d ON a.doctor_id = d.doctor_id
+JOIN Patients p ON a.patient_id = p.patient_id;
+
+-- 2. Bill Generation Procedure
+DELIMITER //
+CREATE PROCEDURE GenerateBill(
+    IN p_patient_id INT,
+    IN p_amount DECIMAL(10,2)
+)
+BEGIN
+    INSERT INTO Bills (patient_id, amount) 
+    VALUES (p_patient_id, p_amount);
+    SELECT CONCAT('Bill generated for Patient ID: ', p_patient_id) AS message;
+END //
+DELIMITER ;
+
+-- --------------------------------------------------------------------------------------------
