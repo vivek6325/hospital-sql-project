@@ -57,7 +57,7 @@ CREATE TABLE Bills (
     FOREIGN KEY (patient_id) REFERENCES Patients(patient_id)
 );
 
--- 2--------------------------------------------------------------------------------------
+-- 2:Data Population--------------------------------------------------------------------------------------
 
 -- Insert Departments
 INSERT INTO Departments VALUES 
@@ -99,7 +99,7 @@ INSERT INTO Bills VALUES
 (402, 202, 2500.00, '2025-06-12'),
 (403, 204, 800.00, '2025-06-20');
 
--- 3----------------------------------------------------------------------------------------
+-- 3.Advanced Schema (New Tables)----------------------------------------------------------------------------------------
 
 -- 7. Prescriptions Table
 CREATE TABLE Prescriptions (
@@ -130,7 +130,7 @@ INSERT INTO Room_Allocations VALUES
 (701, 201, 'ICU-101', '2025-06-09', '2025-06-11'),
 (702, 204, 'WARD-205', '2025-06-19', NULL);
 
--- 4-------------------------------------------------------------------------------------
+-- 4:Query Development-------------------------------------------------------------------------------------
 
 -- 1. Active Appointments with Doctor Details
 SELECT 
@@ -156,7 +156,7 @@ JOIN Patients p ON r.patient_id = p.patient_id
 WHERE r.discharge_date IS NULL;
 
 
--- 5------------------------------------------------------------------------------------------------
+-- 5:Automation (Views/Procedures)------------------------------------------------------------------------------------------------
 
 -- 1. Doctor Schedule View
 CREATE VIEW Doctor_Schedule AS
